@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=64.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "egowalk-dataset"
+version = "0.1.0"
+authors = [
+    { name="Timur Akhtyamov", email="Timur.Akhtyamov@skoltech.ru" },
+]
+description = "API for the EgoWalk dataset"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "torch>=1.4.0",
+    "datasets>=2.5.0",
+    "av>=11.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "wheel>=0.37.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["egowalk_dataset*"]  # Replace with your package name 
