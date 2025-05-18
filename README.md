@@ -1,5 +1,5 @@
 # EgoWalk Dataset
-API for the EgoWalk dataset.
+API for the [EgoWalk dataset](https://huggingface.co/datasets/EgoWalk/trajectories).
 
 ## Installation
 We support **Python 3.9+**. Clone the repo and use `pip` to install the library:
