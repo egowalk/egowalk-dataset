@@ -167,7 +167,6 @@ class OdometryChannel:
     def all_timestamps(self) -> List[int]:
         return sorted(self._timestamp_to_idx.keys())
     
-    @property
     def at(self, timestamp: int) -> Optional[Pose3D]:
         if timestamp not in self._timestamp_to_idx:
             raise ValueError(f"Timestamp {timestamp} not found in trajectory")
