@@ -5,10 +5,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, Any, Union, Optional, Callable, Literal, Tuple, List
-from egowalk_dataset.misc.constants import HF_EGOWALK_HOME
 from egowalk_dataset.util.video import decode_frame
 from egowalk_dataset.misc.indexing import IndependentSequence
-from egowalk_dataset.misc.constants import (BASE_RGB_DIR,
+from egowalk_dataset.misc.constants import (DEFAULT_DATA_PATH,
+                                            BASE_RGB_DIR,
                                             BASE_DEPTH_DIR,
                                             BASE_VIDEO_DIR,
                                             RGB_VIDEO_EXTENSION,
@@ -204,16 +204,11 @@ class GNMDataset(torch.utils.data.Dataset):
     def __init__(self,
                  index: Dict[str, Any],
                  features: List[GNMFeature],
-                 root: Optional[Union[str, Path]] = None):
+                 data_path: Union[str, Path] = DEFAULT_DATA_PATH):
         super(GNMDataset, self).__init__()
-        if root is None:
-            root = HF_EGOWALK_HOME
-        else:
-            root = Path(root)
-
         self._index = index
         self._features = features
-        self._root = root
+        self._root = Path(data_path)
 
     def __len__(self):
         return len(self._index["trajectory"])

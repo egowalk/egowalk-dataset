@@ -6,7 +6,7 @@ from pathlib import Path
 from functools import partial
 from egowalk_dataset.datasets.gnm.cutters import (AbstractTrajectoryCutter,
                                                   apply_cutter)
-from egowalk_dataset.misc.constants import (HF_EGOWALK_HOME,
+from egowalk_dataset.misc.constants import (DEFAULT_DATA_PATH,
                                             BASE_PARQUET_DIR)
 from egowalk_dataset.datasets.trajectory.trajectory import EgoWalkTrajectory
 from egowalk_dataset.util.parallel import do_parallel
@@ -189,13 +189,10 @@ def index_gnm(cutters: List[AbstractTrajectoryCutter],
               action_length: int,
               context_step: int = 1,
               action_step: int = 1,
-              root: Optional[Union[str, Path]] = None,
+              data_path: Union[str, Path] = DEFAULT_DATA_PATH,
               n_workers: int = 0,
               use_tqdm: bool = True):
-    if root is None:
-        root = HF_EGOWALK_HOME
-    else:
-        root = Path(root).expanduser()
+    root = Path(data_path)
     
     parquet_dir = root / BASE_PARQUET_DIR
     if not parquet_dir.exists():
@@ -237,13 +234,10 @@ def index_gnm_text(caption_type: str,
               action_step: int = 1,
               window_step: int = 1,
               n_window_steps: int = 1,
-              root: Optional[Union[str, Path]] = None,
+              data_path: Union[str, Path] = DEFAULT_DATA_PATH,
               n_workers: int = 0,
               use_tqdm: bool = True):
-    if root is None:
-        root = HF_EGOWALK_HOME
-    else:
-        root = Path(root).expanduser()
+    root = Path(data_path)
     
     parquet_dir = root / BASE_PARQUET_DIR
     if not parquet_dir.exists():
