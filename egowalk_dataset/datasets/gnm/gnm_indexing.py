@@ -6,7 +6,7 @@ from pathlib import Path
 from functools import partial
 from egowalk_dataset.datasets.gnm.cutters import (AbstractTrajectoryCutter,
                                                   apply_cutter)
-from egowalk_dataset.misc.constants import (HF_EGOWALK_HOME,
+from egowalk_dataset.misc.constants import (DEFAULT_DATA_PATH,
                                             BASE_PARQUET_DIR)
 from egowalk_dataset.datasets.trajectory.trajectory import EgoWalkTrajectory
 from egowalk_dataset.util.parallel import do_parallel
@@ -79,7 +79,7 @@ def _index_single_traj(traj_name: Path,
                        context_step: int,
                        action_step: int) -> None:
     traj = EgoWalkTrajectory.from_dataset(name=traj_name,
-                                          root=root)
+                                          data_path=root)
 
     timestamps = traj.odometry.valid_timestamps
     traj_bev = traj.odometry.get_bev(filter_valid=True)
@@ -132,7 +132,7 @@ def _index_single_traj_text(traj_name: Path,
                        window_step: int,
                        n_window_steps: int) -> None:
     traj = EgoWalkTrajectory.from_dataset(name=traj_name,
-                                          root=root)
+                                          data_path=root)
     text_df = pd.read_parquet(root / "annotations" / caption_type / f"{traj_name}__annotations_{caption_type}.parquet")
 
     timestamps = traj.odometry.all_timestamps
@@ -189,21 +189,21 @@ def index_gnm(cutters: List[AbstractTrajectoryCutter],
               action_length: int,
               context_step: int = 1,
               action_step: int = 1,
-              root: Optional[Union[str, Path]] = None,
+              data_path: Union[str, Path] = DEFAULT_DATA_PATH,
+              trajectories: Optional[List[str]] = None,
               n_workers: int = 0,
               use_tqdm: bool = True):
-    if root is None:
-        root = HF_EGOWALK_HOME
-    else:
-        root = Path(root).expanduser()
+    root = Path(data_path)
     
-    parquet_dir = root / BASE_PARQUET_DIR
-    if not parquet_dir.exists():
-        raise FileNotFoundError(f"No dataset found in {root}")
-
-    traj_names = sorted([e.stem for e in parquet_dir.glob("*.parquet")])
-    if len(traj_names) == 0:
-        raise FileNotFoundError(f"No parquet files found in {parquet_dir}")
+    if trajectories is None:
+        parquet_dir = root / BASE_PARQUET_DIR
+        if not parquet_dir.exists():
+            raise FileNotFoundError(f"No dataset found in {root}")
+        traj_names = sorted([e.stem for e in parquet_dir.glob("*.parquet")])
+        if len(traj_names) == 0:
+            raise FileNotFoundError(f"No parquet files found in {parquet_dir}")
+    else:
+        traj_names = trajectories
     
     task_fn = partial(_index_single_traj,
                       root=root,
@@ -237,21 +237,21 @@ def index_gnm_text(caption_type: str,
               action_step: int = 1,
               window_step: int = 1,
               n_window_steps: int = 1,
-              root: Optional[Union[str, Path]] = None,
+              data_path: Union[str, Path] = DEFAULT_DATA_PATH,
+              trajectories: Optional[List[str]] = None,
               n_workers: int = 0,
               use_tqdm: bool = True):
-    if root is None:
-        root = HF_EGOWALK_HOME
-    else:
-        root = Path(root).expanduser()
+    root = Path(data_path)
     
-    parquet_dir = root / BASE_PARQUET_DIR
-    if not parquet_dir.exists():
-        raise FileNotFoundError(f"No dataset found in {root}")
-
-    traj_names = sorted([e.stem for e in parquet_dir.glob("*.parquet")])
-    if len(traj_names) == 0:
-        raise FileNotFoundError(f"No parquet files found in {parquet_dir}")
+    if trajectories is None:
+        parquet_dir = root / BASE_PARQUET_DIR
+        if not parquet_dir.exists():
+            raise FileNotFoundError(f"No dataset found in {root}")
+        traj_names = sorted([e.stem for e in parquet_dir.glob("*.parquet")])
+        if len(traj_names) == 0:
+            raise FileNotFoundError(f"No parquet files found in {parquet_dir}")
+    else:
+        traj_names = trajectories
     
     task_fn = partial(_index_single_traj_text,
                       caption_type=caption_type,

@@ -6,14 +6,14 @@ import pandas as pd
 import av
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Optional, Union
 from pathlib import Path
 from egowalk_dataset.datasets.trajectory.geometry import (Pose3D, 
                                                  Vector3D, 
                                                  Quaternion3D, 
                                                  Pose2D)
 from egowalk_dataset.util.video import FormatType, decode_frame
-from egowalk_dataset.misc.constants import (HF_EGOWALK_HOME,
+from egowalk_dataset.misc.constants import (DEFAULT_DATA_PATH,
                                              RGB_VIDEO_EXTENSION,
                                              DEPTH_VIDEO_EXTENSION,
                                              BASE_RGB_DIR,
@@ -218,10 +218,10 @@ class EgoWalkTrajectory:
     @classmethod
     def from_dataset(cls,
                      name: str,
-                     root: Optional[Union[str, Path]] = None,
+                     data_path: Union[str, Path] = DEFAULT_DATA_PATH,
                      timestamps: Optional[List[int]] = None,
                      keep_video_open: bool = False) -> EgoWalkTrajectory:
-        root = Path(root) if root is not None else HF_EGOWALK_HOME
+        root = Path(data_path)
         with open(root / BASE_METADATA_DIR / "heights.json", "r") as f:
             height = float(json.load(f)[name])
         return cls(rgb_video_file=root / BASE_VIDEO_DIR /BASE_RGB_DIR / f"{name}__rgb.{RGB_VIDEO_EXTENSION}",
