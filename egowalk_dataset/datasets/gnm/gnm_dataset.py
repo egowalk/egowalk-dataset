@@ -259,7 +259,7 @@ class DefaultGNMDataset(GNMDataset):
                  image_transform: Optional[Callable[[np.ndarray],
                                                     Union[np.ndarray, torch.Tensor]]] = None,
                  angle_format: Literal["none", "yaw", "sincos"] = "none",
-                 root: Optional[Union[str, Path]] = None):
+                 data_path: Union[str, Path] = DEFAULT_DATA_PATH):
         obs_feature = GNMRGBFeature(name="obs",
                                     field="obs",
                                     transform=image_transform)
@@ -269,4 +269,4 @@ class DefaultGNMDataset(GNMDataset):
         action_feature = GNMWaypointFeature(name="action",
                                             angle_format=angle_format)
         features = [obs_feature, goal_feature, action_feature]
-        super(DefaultGNMDataset, self).__init__(index, features, root)
+        super(DefaultGNMDataset, self).__init__(index, features, data_path)
