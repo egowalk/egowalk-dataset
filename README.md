@@ -8,7 +8,7 @@ API for the [EgoWalk dataset](https://huggingface.co/datasets/EgoWalk/trajectori
 We support **Python 3.9+**. Clone the repo and use `pip` to install the library:
 ```shell
 pip3 install --upgrade pip
-git clone https://github.com/planning-team/egowalk-dataset.git
+git clone https://github.com/egowalk/egowalk-dataset.git
 cd egowalk-dataset
 pip3 install -e .
 ```
