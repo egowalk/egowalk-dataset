@@ -55,19 +55,6 @@ def _get_gnm_tuple(obs_idx: int,
     return context_timestamps, actions, result_goal_offset
 
 
-def _filter_actions(actions: np.ndarray) -> np.ndarray:
-    filtered_actions = actions.copy()
-    for i in range(1, len(filtered_actions)):
-        mask = np.isnan(filtered_actions[i])
-        if np.any(mask):
-            filtered_actions[i, mask] = filtered_actions[i-1, mask]
-    for i in range(len(filtered_actions)-2, -1, -1):
-        mask = np.isnan(filtered_actions[i])
-        if np.any(mask):
-            filtered_actions[i, mask] = filtered_actions[i+1, mask]
-    return filtered_actions
-
-
 def _index_single_traj(traj_name: Path,
                        root: Path,
                        cutters: List[AbstractTrajectoryCutter],
@@ -123,61 +110,67 @@ def _index_single_traj(traj_name: Path,
 
 
 def _index_single_traj_text(traj_name: Path,
-                       root: Path,
-                       caption_type: str,
-                       context_length: int,
-                       action_length: int,
-                       context_step: int,
-                       action_step: int,
-                       window_step: int,
-                       n_window_steps: int) -> None:
+                            root: Path,
+                            annotations_root: Path,
+                            cutters: List[AbstractTrajectoryCutter],
+                            window_step: int,
+                            context_length: int,
+                            action_length: int,
+                            context_step: int,
+                            action_step: int,
+                            caption_type: str) -> None:
     traj = EgoWalkTrajectory.from_dataset(name=traj_name,
                                           data_path=root)
-    text_df = pd.read_parquet(root / "annotations" / caption_type / f"{traj_name}__annotations_{caption_type}.parquet")
 
-    timestamps = traj.odometry.all_timestamps
-    traj_bev = traj.odometry.get_bev(filter_valid=False)
+    timestamps = traj.odometry.valid_timestamps
+    traj_bev = traj.odometry.get_bev(filter_valid=True)
+
+    text_df = pd.read_parquet(annotations_root / f"{traj_name}.parquet")
 
     result = {
         "trajectory": [],
         "obs_idxs": [],
-        "goal_caption": [],
-        "goal_bbox": [],
-        "action": []
+        "action": [],
+        "goal_caption": []
     }
 
-    for _, row in text_df.iterrows():
-        traj_name = row["trajectory"]
-        caption = row["caption"]
-        frame_idx = row["frame"]
-        bbox = (row["box_x"], row["box_y"], row["box_w"], row["box_h"])
+    segments = apply_cutter(trajectory=traj_bev,
+                            cutter=cutters)
 
-        for i in range(0, n_window_steps * window_step, window_step):
-            if frame_idx + i > len(timestamps) - 1:
-                break
-            context_timestamps, actions, _ = _get_gnm_tuple(obs_idx=frame_idx + i,
-                                                                        segment_timestamps=timestamps,
-                                                                        segment_traj_bev=traj_bev,
-                                                                        context_length=context_length,
-                                                                        goal_offset=0,
-                                                                        goal_offset_mode="fixed",
-                                                                        action_length=action_length,
-                                                                        context_step=context_step,
-                                                                        action_step=action_step)
-            if np.isnan(actions).all():
-                continue
-            if np.isnan(actions).any():
-                actions = _filter_actions(actions)
+                            
+    for segment in segments:
+        segment_timestamps = np.array(timestamps[segment[0]:segment[1]])
+        segment_traj_bev = traj_bev[segment[0]:segment[1]]
+        segment_text_df = text_df[text_df["start_ts"].between(segment_timestamps[0], segment_timestamps[-1])]
 
-            context_idxs = [traj.rgb.timestamp_to_idx(t) for t in context_timestamps]
-            actions = [[float(e[0]), float(e[1]), float(e[2])] for e in actions]
+        for _, row in segment_text_df.iterrows():
+            start_ts = row["start_ts"]
+            end_ts = row["end_ts"]
+            start_idx = int(np.argmin(np.abs(segment_timestamps - start_ts)))
+            end_idx = int(np.argmin(np.abs(segment_timestamps - end_ts)))
+            goal = row[caption_type]
+            for i in range(start_idx, end_idx, window_step):
+                context_timestamps, actions, _ = _get_gnm_tuple(obs_idx=i,
+                                                                segment_timestamps=segment_timestamps,
+                                                                segment_traj_bev=segment_traj_bev,
+                                                                context_length=context_length,
+                                                                goal_offset=0,
+                                                                goal_offset_mode="fixed",
+                                                                action_length=action_length,
+                                                                context_step=context_step,
+                                                                action_step=action_step)
 
-            result["trajectory"].append(traj_name)
-            result["obs_idxs"].append(context_idxs)
-            result["goal_caption"].append(caption)
-            result["goal_bbox"].append(bbox)
-            result["action"].append(actions)
-        
+                if context_timestamps is None:
+                    continue
+
+                context_idxs = [traj.rgb.timestamp_to_idx(t) for t in context_timestamps]
+                actions = [[float(e[0]), float(e[1]), float(e[2])] for e in actions]
+
+                result["trajectory"].append(traj_name)
+                result["obs_idxs"].append(context_idxs)
+                result["goal_caption"].append(goal)
+                result["action"].append(actions)
+            
     return result
 
 
@@ -230,18 +223,21 @@ def index_gnm(cutters: List[AbstractTrajectoryCutter],
     return final_result
 
 
-def index_gnm_text(caption_type: str,
-              context_length: int,
-              action_length: int,
-              context_step: int = 1,
-              action_step: int = 1,
-              window_step: int = 1,
-              n_window_steps: int = 1,
-              data_path: Union[str, Path] = DEFAULT_DATA_PATH,
-              trajectories: Optional[List[str]] = None,
-              n_workers: int = 0,
-              use_tqdm: bool = True):
+def index_gnm_text(cutters: List[AbstractTrajectoryCutter],
+                   annotations_path: Union[str, Path],
+                   annotations_subset: str,
+                   caption_type: str,
+                   context_length: int,
+                   action_length: int,
+                   window_step: int = 1,
+                   context_step: int = 1,
+                   action_step: int = 1,
+                   data_path: Union[str, Path] = DEFAULT_DATA_PATH,
+                   trajectories: Optional[List[str]] = None,
+                   n_workers: int = 0,
+                   use_tqdm: bool = True):
     root = Path(data_path)
+    annotations_path = Path(annotations_path)
     
     if trajectories is None:
         parquet_dir = root / BASE_PARQUET_DIR
@@ -254,14 +250,15 @@ def index_gnm_text(caption_type: str,
         traj_names = trajectories
     
     task_fn = partial(_index_single_traj_text,
-                      caption_type=caption_type,
-                      root=root,
-                      context_length=context_length,
-                      action_length=action_length,
-                      context_step=context_step,
-                      action_step=action_step,
-                      window_step=window_step,
-                      n_window_steps=n_window_steps)
+                            root=root,
+                            annotations_root=annotations_path / annotations_subset,
+                            caption_type=caption_type,
+                            cutters=cutters,
+                            window_step=window_step,
+                            context_length=context_length,
+                            action_length=action_length,
+                            context_step=context_step,
+                            action_step=action_step)
     
     traj_results = do_parallel(task_fn,
                           traj_names,

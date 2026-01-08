@@ -21,7 +21,6 @@ class GNMTuple:
     obs_idxs: List[int]
     goal_idx: Optional[int]
     action: List[float]
-    goal_bbox: Optional[Tuple[float, float, float, float]]
     goal_caption: Optional[str]
 
 
@@ -179,26 +178,6 @@ class GNMCaptionFeature(GNMFeature):
         return caption
 
 
-class GNMBBoxFeature(GNMFeature):
-
-    def __init__(self,
-                 name: str,
-                 return_tensors: Literal["np", "pt"] = "pt"):
-        super(GNMBBoxFeature, self).__init__(name)
-        self._return_tensors = return_tensors
-
-    def __call__(self,
-                 root: Path,
-                 gnm_tuple: GNMTuple) -> Any:
-        bbox = np.array(gnm_tuple.goal_bbox)
-        if self._return_tensors == "np":
-            return bbox
-        elif self._return_tensors == "pt":
-            return torch.from_numpy(bbox).float()
-        else:
-            raise ValueError(f"Invalid return tensors {self._return_tensors}")
-
-
 class GNMDataset(torch.utils.data.Dataset):
 
     def __init__(self,
@@ -228,7 +207,6 @@ class GNMDataset(torch.utils.data.Dataset):
                 goal_idx = np.random.randint(goal_idx[0], goal_idx[1] + 1)
             gnm_tuple_kwargs["goal_idx"] = goal_idx
             gnm_tuple_kwargs["goal_caption"] = None
-            gnm_tuple_kwargs["goal_bbox"] = None
 
             action_length = len(action)
             if action_length > (goal_idx - current_obs_idx):
@@ -239,7 +217,6 @@ class GNMDataset(torch.utils.data.Dataset):
         else:
             # Assume it is the text-only GNM dataset
             gnm_tuple_kwargs["goal_caption"] = self._index["goal_caption"][idx]
-            gnm_tuple_kwargs["goal_bbox"] = self._index["goal_bbox"][idx]
             gnm_tuple_kwargs["goal_idx"] = None
 
         gnm_tuple_kwargs["action"] = action
