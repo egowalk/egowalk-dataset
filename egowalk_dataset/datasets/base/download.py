@@ -5,6 +5,7 @@ from egowalk_dataset.misc.constants import (DEFAULT_REPO_ID,
                                             HF_EGOWALK_HOME,
                                             BASE_PARQUET_DIR,
                                             BASE_ANNOTATION_DIR,
+                                            BASE_LEGACY_DIR,
                                             BASE_VIDEO_DIR,
                                             BASE_DEPTH_DIR,
                                             BASE_RGB_DIR,
@@ -52,6 +53,7 @@ def download_dataset(download_rgb: bool,
     files_list = [
         f"{BASE_PARQUET_DIR}/*",
         f"{BASE_ANNOTATION_DIR}/*",
+        f"{BASE_LEGACY_DIR}/*",
     ]
     if download_rgb:
         files_list.extend(_collect_video_files(trajectories, "rgb"))

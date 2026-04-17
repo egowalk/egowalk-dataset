@@ -16,6 +16,7 @@ BASE_VIDEO_DIR = "video"
 BASE_RGB_DIR = "rgb"
 BASE_DEPTH_DIR = "depth"
 BASE_ANNOTATION_DIR = "annotations"
+BASE_LEGACY_DIR = "legacy"
 
 METADATA_TRAJECTORIES_FILE = "trajectories.json"
 METADATA_HEIGHTS_FILE = "heights.json"
